@@ -543,6 +543,8 @@ void		 global_timer_handle(struct bgpd_config *, monotime_t);
 monotime_t	 global_timer_next(monotime_t);
 void		 global_parse_update(struct peer *, struct ibuf *);
 void		 global_ometric_stats(struct bgpd_config *);
+void		 global_peer_up(struct peer *);
+void		 global_peer_down(struct peer *);
 
 
 static const char * const log_procnames[] = {

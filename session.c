@@ -866,14 +866,14 @@ getpeerbyid(struct bgpd_config *c, uint32_t peerid)
 }
 
 void
-session_down(struct peer *peer)
+session_down(struct peer *p)
 {
-	memset(&peer->capa.neg, 0, sizeof(peer->capa.neg));
-	peer->stats.last_updown = getmonotime();
+	memset(&p->capa.neg, 0, sizeof(p->capa.neg));
+	p->stats.last_updown = getmonotime();
 
-	timer_set(&peer->timers, Timer_SessionDown, INTERVAL_SESSION_DOWN);
+	timer_set(&p->timers, Timer_SessionDown, INTERVAL_SESSION_DOWN);
 
-	/* XXX */
+	global_peer_down(p);
 }
 
 void
@@ -889,7 +889,7 @@ session_up(struct peer *p)
 
 	timer_stop(&p->timers, Timer_SessionDown);
 
-	/* XXX */
+	global_peer_up(p);
 }
 
 void

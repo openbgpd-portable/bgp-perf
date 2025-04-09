@@ -196,6 +196,20 @@ struct timer {
 
 TAILQ_HEAD(timer_head, timer);
 
+struct bgp_prefix {
+	TAILQ_ENTRY(bgp_prefix)	entry;
+	struct bgpd_addr	prefix;
+	uint32_t		path_id;
+	uint8_t			prefixlen;
+};
+
+struct bgp_attr {
+	uint64_t		hash;
+	TAILQ_HEAD(, bgp_prefix)prefixes;
+	struct bgpd_addr	nexthop;
+	struct mrt_attr *attrs;
+};
+
 struct peer {
 	struct peer_config	 conf;
 	struct peer_stats	 stats;

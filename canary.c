@@ -311,3 +311,13 @@ log_warnx("round-trip min/avg/max/std-dev = %.3f/%.3f/%.3f/%.3f ms",
     cstat.min / 1e3, avg / 1e3, cstat.max / 1e3, stddev / 1e3);
 	}
 }
+
+void
+global_peer_up(struct peer *p)
+{
+}
+
+void
+global_peer_down(struct peer *p)
+{
+}
