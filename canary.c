@@ -139,9 +139,8 @@ canary_generate_update(struct peer *p)
 	    ibuf_add_n8(buf, 2) == -1)
 		goto fail;
 
-	cstat.sent++;
-
 	session_update(p, buf);
+	cstat.sent++;
 
 	ibuf_free(buf);
 	return;
@@ -248,6 +247,16 @@ global_parse_update(struct peer *p, struct ibuf *buf)
 }
 
 void
+global_peer_up(struct peer *p)
+{
+}
+
+void
+global_peer_down(struct peer *p)
+{
+}
+
+void
 global_timer_handle(struct bgpd_config *conf, monotime_t now)
 {
 	struct timer *t;
@@ -310,14 +319,4 @@ global_ometric_stats(struct bgpd_config *conf)
 log_warnx("round-trip min/avg/max/std-dev = %.3f/%.3f/%.3f/%.3f ms",
     cstat.min / 1e3, avg / 1e3, cstat.max / 1e3, stddev / 1e3);
 	}
-}
-
-void
-global_peer_up(struct peer *p)
-{
-}
-
-void
-global_peer_down(struct peer *p)
-{
 }

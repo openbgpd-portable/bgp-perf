@@ -34,7 +34,7 @@ log_fmt_peer(const struct peer_config *peer)
 	const char	*ip;
 	char		*pfmt, *p;
 
-	ip = log_addr(&peer->remote_addr);
+	ip = log_addr(&peer->local_addr);
 	if ((p = strdup(ip)) == NULL)
 		fatal(NULL);
 

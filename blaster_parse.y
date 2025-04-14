@@ -648,9 +648,9 @@ peeropts	: REMOTEAS as4number	{
 		| ANNOUNCE ENHANCED REFRESH yesnoenforce {
 			curpeer->conf.capabilities.enhanced_rr = $4;
 		}
-		| ANNOUNCE AS4BYTE yesnoenforce {
+		/* | ANNOUNCE AS4BYTE yesnoenforce {
 			curpeer->conf.capabilities.as4byte = $3;
-		}
+		} */
 		| ANNOUNCE POLICY yesnoenforce {
 			curpeer->conf.capabilities.policy = $3;
 		}
@@ -2014,11 +2014,12 @@ alloc_peer(void)
 	p->state = STATE_NONE;
 	p->conf.distance = 1;
 	p->conf.capabilities.refresh = 1;
-	p->conf.capabilities.as4byte = 1;
+	p->conf.capabilities.as4byte = 2;
 	p->conf.capabilities.policy = 1;
 	p->conf.local_as = conf->as;
 	p->conf.local_short_as = conf->short_as;
 	p->conf.remote_port = BGP_PORT;
+	CH_INIT(rib, &p->rib);
 
 	return (p);
 }

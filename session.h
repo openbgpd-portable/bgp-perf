@@ -20,6 +20,8 @@
 #include <sys/socket.h>
 #include <time.h>
 
+#include "chash.h"
+
 #define	MAX_BACKLOG			5
 #define	INTERVAL_CONNECTRETRY		120
 #define	INTERVAL_HOLD_INITIAL		240
@@ -204,11 +206,14 @@ struct bgp_prefix {
 };
 
 struct bgp_attr {
-	uint64_t		hash;
-	TAILQ_HEAD(, bgp_prefix)prefixes;
-	struct bgpd_addr	nexthop;
-	struct mrt_attr *attrs;
+	uint64_t		  hash;
+	TAILQ_HEAD(, bgp_prefix)  prefixes;
+	struct bgpd_addr	  nexthop;
+	struct attr		**attrs;
+	int			  nattrs;
 };
+
+CH_HEAD(rib, bgp_attr);
 
 struct peer {
 	struct peer_config	 conf;
@@ -225,6 +230,7 @@ struct peer {
 	struct bgpd_addr	 local_alt;
 	struct bgpd_addr	 remote;
 	struct timer_head	 timers;
+	struct rib		 rib;
 	struct msgbuf		*wbuf;
 	struct peer		*template;
 	int			 fd;
@@ -290,6 +296,13 @@ void	print_config(struct bgpd_config *);
 
 /* session.c */
 RB_PROTOTYPE(peer_head, peer, entry, peer_compare);
+
+__unused static inline uint64_t
+bgp_attr_hash(const struct bgp_attr *b)
+{
+	return b->hash;
+}
+CH_PROTOTYPE(rib, bgp_attr, bgp_attr_hash);
 
 void		 session_main(struct bgpd_config *);
 int		 session_neighbor_rrefresh(struct peer *p);

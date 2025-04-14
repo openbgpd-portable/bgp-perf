@@ -528,8 +528,23 @@ void		 sa2addr(struct sockaddr *, struct bgpd_addr *, uint16_t *);
 const char	*get_baudrate(unsigned long long, char *);
 
 /* attr.c */
+struct mrt_rib_entry;
+struct bgp_prefix;
+struct bgp_attr;
+struct attr;
 int		 attr_writebuf(struct ibuf *, uint8_t, uint8_t, void *,
 		    uint16_t);
+void		 attr_init(void);
+int		 attr_optadd(struct bgp_attr *, uint8_t, uint8_t, void *,
+		    uint16_t);
+struct attr	*attr_optget(const struct bgp_attr *, uint8_t);
+void		 attr_freeall(struct bgp_attr *);
+uint8_t		 attr_flags(uint8_t);
+int		 nlri_len(const struct bgp_prefix *);
+int		 nlri_writebuf(struct ibuf *, const struct bgp_prefix *);
+void		 bgp_attr_free(struct bgp_attr *);
+uint64_t	 bgp_attr_calc_hash(const struct bgp_attr *);
+struct bgp_attr	*mrt_to_bgp_attr(struct mrt_rib_entry *, int);
 
 /* output_ometric.c */
 void		 ometric_init(void);

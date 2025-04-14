@@ -66,7 +66,7 @@ enum attrtypes {
 #define ATTR_WELL_KNOWN		ATTR_TRANSITIVE
 
 struct attr {
-	RB_ENTRY(attr)			 entry;
+	uint64_t			 hash;
 	u_char				*data;
 	int				 refcnt;
 	uint16_t			 len;
@@ -109,21 +109,5 @@ struct rde_community {
 #define ORIGIN_INCOMPLETE	2
 
 #define DEFAULT_LPREF		100
-
-struct rde_aspath {
-	RB_ENTRY(rde_aspath)		 entry;
-	struct attr			**others;
-	struct aspath			*aspath;
-	int				 refcnt;
-	uint32_t			 flags;		/* internally used */
-	uint32_t			 med;		/* multi exit disc */
-	uint32_t			 lpref;		/* local pref */
-	uint32_t			 weight;	/* low prio lpref */
-	uint16_t			 rtlabelid;	/* route label id */
-	uint16_t			 pftableid;	/* pf table id */
-	uint8_t				 origin;
-	uint8_t				 others_len;
-	uint8_t				 aspa_generation;
-};
 
 #define	PREFIX_SIZE(x)	(((x) + 7) / 8 + 1)
