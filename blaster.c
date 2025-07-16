@@ -23,7 +23,6 @@ void
 global_setup(struct bgpd_config *conf)
 {
 	int mrtfd;
-	const char *mrtfile = "/tmp/blaster.mrt";
 
 	TAILQ_INIT(&timers);
 	timer_set(&timers, Timer_Metric, 15);
@@ -31,9 +30,9 @@ global_setup(struct bgpd_config *conf)
 	attr_init();
 	ometric_init();
 
-	mrtfd = open(mrtfile, O_RDONLY | O_CLOEXEC);
+	mrtfd = open(conf->mrt_path, O_RDONLY | O_CLOEXEC);
 	if (mrtfd == -1)
-		fatal("mrt file %s", mrtfile);
+		fatal("mrt file %s", conf->mrt_path);
 
 	mrt_ctx.arg = conf;
 	mrt_parse(mrtfd, &mrt_ctx, 1);

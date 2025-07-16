@@ -147,7 +147,7 @@ typedef struct {
 %token	ANNOUNCE REFRESH AS4BYTE CONNECTRETRY ENHANCED ADDPATH EXTENDED
 %token	SEND RECV PLUS POLICY ROLE GRACEFUL NOTIFICATION MESSAGE
 %token	DEMOTE ENFORCE NEIGHBORAS ASOVERRIDE REFLECTOR DEPEND DOWN
-%token	DUMP IN OUT SOCKET RESTRICTED
+%token	DUMP IN OUT SOCKET RESTRICTED MRT
 %token	LOG TRANSPARENT FILTERED
 %token	TCP MD5SIG PASSWORD KEY TTLSECURITY
 %token	ALLOW DENY MATCH
@@ -371,6 +371,9 @@ conf_main	: HOLDTIME NUMBER	{
 		}
 		| DUMP METRIC STRING {
 			conf->ometric_path = $3;
+		}
+		| MRT DUMP STRING {
+			conf->mrt_path = $3;
 		}
 		;
 
@@ -1265,6 +1268,7 @@ lookup(char *s)
 		{ "metric",		METRIC },
 		{ "min",		YMIN },
 		{ "min-version",	MINVERSION },
+		{ "mrt",		MRT },
 		{ "multihop",		MULTIHOP },
 		{ "neighbor",		NEIGHBOR },
 		{ "neighbor-as",	NEIGHBORAS },

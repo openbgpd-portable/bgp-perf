@@ -157,6 +157,7 @@ struct bgpd_config {
 	struct network_head			 networks;
 	struct listen_addrs			*listen_addrs;
 	char					*ometric_path;
+	char					*mrt_path;
 	int					 flags;
 	int					 log;
 	u_int					 default_tableid;
