@@ -99,7 +99,7 @@ main(int argc, char *argv[])
 			cmd_opts |= BGPD_OPT_VERBOSE;
 			break;
 		case 'V':
-			fprintf(stderr, "bgp-canary %s\n", BGPD_VERSION);
+			fprintf(stderr, "bgp-perf tools %s\n", BGPD_VERSION);
 			return 0;
 		default:
 			usage();
