@@ -25,7 +25,9 @@ global_setup(struct bgpd_config *conf)
 	int mrtfd;
 
 	TAILQ_INIT(&timers);
+#if 0
 	timer_set(&timers, Timer_Metric, 15);
+#endif
 
 	attr_init();
 	ometric_init();
@@ -71,8 +73,10 @@ global_timer_handle(struct bgpd_config *conf, monotime_t now)
 	if ((t = timer_nextisdue(&timers, now)) != NULL) {
 		switch (t->type) {
 		case Timer_Metric:
+#if 0
 			timer_set(&timers, Timer_Metric, 15);
 			ometric_dump(conf);
+#endif
 			break;
 		default:
 			break;
@@ -162,7 +166,7 @@ mrt_dump(struct mrt_rib *mr, struct mrt_peer *mp, void *arg)
 			continue;
 		}
 
-		bgp_attr_calc_hash(ba);
+		ba->hash = bgp_attr_calc_hash(ba);
 		if (CH_INSERT(rib, &p->rib, ba, &prev) == -1)
 			fatal("CH_INSERT");
 		if (prev != NULL)
