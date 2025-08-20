@@ -1,5 +1,7 @@
 #	$OpenBSD: Makefile,v 1.39 2023/04/17 08:02:21 claudio Exp $
 
+BINDIR?=	/usr/local/sbin
+
 PROGS =	bgp-canary bgp-blaster
 SRCS_common = attr.c config.c log.c logmsg.c main.c pfkey.c \
 		printconf.c session.c session_bgp.c timer.c util.c monotime.c \
