@@ -269,7 +269,7 @@ int	 prepare_listeners(struct bgpd_config *);
 
 /* log.c */
 char	*log_fmt_peer(const struct peer_config *);
-void	 log_statechange(struct peer *, enum session_state,
+void	 log_statechange(struct peer *,  enum session_state,
 	    enum session_events);
 void	 log_notification(const struct peer *, uint8_t, uint8_t,
 	    const struct ibuf *, const char *);
@@ -316,8 +316,7 @@ void		 session_handle_update(struct peer *, struct ibuf *);
 void		 session_handle_rrefresh(struct peer *, struct route_refresh *);
 void		 session_graceful_restart(struct peer *);
 void		 session_graceful_flush(struct peer *, uint8_t, const char *);
-void		 session_mrt_dump_state(struct peer *, enum session_state,
-		    enum session_state);
+void		 session_mrt_dump_state(struct peer *);
 void		 session_mrt_dump_bgp_msg(struct peer *, struct ibuf *,
 		    enum msg_type, enum directions);
 int		 imsg_ctl_parent(struct imsg *);

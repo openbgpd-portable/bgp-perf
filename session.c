@@ -804,8 +804,7 @@ session_graceful_flush(struct peer *p, uint8_t aid, const char *why)
 }	
 
 void
-session_mrt_dump_state(struct peer *p, enum session_state oldstate,
-    enum session_state newstate)
+session_mrt_dump_state(struct peer *p)
 {
 }
 
