@@ -176,8 +176,8 @@ mrt_dump(struct mrt_rib *mr, struct mrt_peer *mp, void *arg)
 
 		bp = bp_new(&mr->prefix, mr->prefixlen, mre->path_id);
 		TAILQ_INSERT_TAIL(&prev->prefixes, bp, entry);
-log_peer_warnx(&p->conf, "inserted %s/%d, at %p rib %d", log_addr(&mr->prefix),
-    mr->prefixlen, prev, p->rib.ch_table.ch_num_elm);
+//log_peer_warnx(&p->conf, "inserted %s/%d, at %p rib %d", log_addr(&mr->prefix),
+//    mr->prefixlen, prev, p->rib.ch_table.ch_num_elm);
 	}
 }
 
@@ -185,11 +185,14 @@ static struct ibuf *
 blast_attrs(struct peer *p, struct bgp_attr *ba)
 {
 	struct ibuf *buf;
-	struct attr *oa;
+	struct attr *oa = NULL;
 	int i, oalen = 0;
 
 	if ((buf = ibuf_dynamic(4, MAX_PKTSIZE - MSGSIZE_HEADER - 4)) == NULL)
 		goto fail;
+
+	if (ba->nattrs > 0)
+		oa = ba->attrs[oalen++];
 
 	/* dump attributes */
 	for (i = ATTR_ORIGIN; i < 255; i++) {
@@ -287,7 +290,6 @@ blast_one(struct peer *p, struct bgp_attr *ba)
 
 	ibuf_free(attrs);
 	ibuf_free(nlris);
-	log_peer_warnx(&p->conf, "generating update success");
 	return;
 
  fail:
