@@ -380,10 +380,10 @@ mrt_attr_add(struct bgp_attr *ba, struct mrt_attr *attr)
 
 	/*
 	 * fixup some bad mrtdump issues I have seen:
-	 *   = attribute flags are 0 (but should not)
+	 *   = attribute flags are 0 apart from ATTR_EXTLEN
 	 *   = ext communities attribute included with 0 len
 	 */
-	if (flags == 0)
+	if ((flags & ~ATTR_DEFMASK) == 0)
 		flags = attr_flags(type);
 	if (type == ATTR_EXT_COMMUNITIES && len == 0)
 		return 0;
