@@ -74,15 +74,6 @@ struct attr {
 	uint8_t				 type;
 };
 
-struct rde_community {
-	RB_ENTRY(rde_community)		entry;
-	int				size;
-	int				nentries;
-	int				flags;
-	int				refcnt;
-	struct community		*communities;
-};
-
 #define	PARTIAL_COMMUNITIES		0x01
 #define	PARTIAL_LARGE_COMMUNITIES	0x02
 #define	PARTIAL_EXT_COMMUNITIES		0x04
