@@ -27,14 +27,14 @@
 /*
  * CH hash table: a cache optimized hash table
  *
- * The CH hash table is split into an extensible hashing part and
+ * The CH hash table is split into an extendible hashing part and
  * sub tables are split into CH_H2_SIZE groups holding 7 elements each.
  * The sub tables are open addressed hash tables similar to swiss tables
  * but the groups are only using 7 fields and not 16. Also the meta data
  * is part of each group. On 64bit archs a group uses 64 bytes.
  *
  * The hash is split in three parts:
- * o H1: variable size hash used by the extensible hashing table
+ * o H1: variable size hash used by the extendible hashing table
  * o H2: fixed size hash to select a group in a sub table.
  * o H3: 1 byte hash to select element in a group.
  *
@@ -107,13 +107,13 @@ cg_meta_clear_flags(struct ch_group *g, uint8_t flag)
 }
 
 static inline uint8_t
-cg_meta_get_flags(struct ch_group *g)
+cg_meta_get_flags(const struct ch_group *g)
 {
 	return g->cg_meta >> CH_FLAGS_SHIFT;
 }
 
 static inline int
-cg_meta_check_flags(struct ch_group *g, uint8_t flag)
+cg_meta_check_flags(const struct ch_group *g, uint8_t flag)
 {
 	uint64_t f = flag;
 	return (g->cg_meta & f << CH_FLAGS_SHIFT) != 0;
@@ -163,15 +163,27 @@ ch_meta_locate(struct ch_group *g, uint64_t mask)
  * CH_EVER_FULL flag the slot is considered a tombstone (if set) or considered
  * free (not set).
  * 
- * Sub tables are automatically split in two when the loadfactor is reached.
+ * Sub tables are automatically split in two when the maximum loadfactor is
+ * reached. If the fill factor drops below a threashold then buddy tables
+ * may be joined back together.
  */
 
-/* Return load factor of a sub table in per mille. */
+/* Return load factor (including tombstones) of a sub table in per mille. */
 static int
 ch_sub_loadfactor(struct ch_meta *m)
 {
 	uint32_t max = CH_H2_SIZE * 7;
 	uint32_t used = m->cs_num_elm + m->cs_num_tomb;
+
+	return used * 1000 / max;
+}
+
+/* Return fill factor (only active elements) of a sub table in per mille. */
+static int
+ch_sub_fillfactor(struct ch_meta *m)
+{
+	uint32_t max = CH_H2_SIZE * 7;
+	uint32_t used = m->cs_num_elm;
 
 	return used * 1000 / max;
 }
@@ -299,6 +311,36 @@ ch_sub_find(const struct ch_type *type, struct ch_group *table, uint64_t h,
 }
 
 /*
+ * Lookup hash in the sub table and if possible match is found pass it to
+ * cmp callback to verify.
+ */
+static void *
+ch_sub_locate(const struct ch_type *type, struct ch_group *table, uint64_t h,
+    int (*cmp)(const void *, void *), void *arg)
+{
+	uint64_t mask;
+	uint32_t bucket = CH_H2(h);
+	int i;
+	uint8_t hits;
+	struct ch_group *g = &table[bucket];
+
+	memset(&mask, CH_H3(h), sizeof(mask));
+	while (1) {
+		hits = ch_meta_locate(g, mask);
+		for (i = 0; i < 7; i++) {
+			if (hits & (1 << i)) {
+				/* most porbably a hit */
+				if (cmp(g->cg_data[i], arg))
+					return g->cg_data[i];
+			}
+		}
+		if ((hits & CH_EVER_FULL) == 0)
+			return NULL;
+		g = &table[++bucket & CH_H2_MASK];
+	}
+}
+
+/*
  * Start of sub table iterator, reset the set and grp indices and locate
  * first element in sub table. Return element or NULL if table is empty.
  */
@@ -393,6 +435,56 @@ ch_sub_split(const struct ch_type *type, struct ch_group *from,
 	return 0;
 }
 
+/*
+ * Merge all active elements of one sub group into the table table.
+ * Return 0 on success, -1 on failure.
+ */
+static int
+ch_sub_merge_one(const struct ch_type *type, struct ch_group *table,
+    struct ch_meta *meta, const struct ch_group *from)
+{
+	uint8_t elms, i;
+
+	elms = cg_meta_get_flags(from) & CH_SLOT_MASK;
+	if (elms == 0)
+		return 0;
+	for (i = 0; i < 7; i++) {
+		if (elms & (1 << i)) {
+			void *v;
+			uint64_t h = type->t_hash(from->cg_data[i]);
+			v = ch_sub_insert(type, table, meta, h,
+			    from->cg_data[i]);
+			if (v != NULL)		/* how should there be a dup? */
+				return -1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * Merge sub tables from and buddy into the new table to.
+ * Returns 0 on success and -1 on failure keeping from and buddy as is.
+ */
+static int
+ch_sub_merge(const struct ch_type *type, struct ch_group *to,
+    struct ch_group *from, struct ch_group *buddy, struct ch_meta *tometa,
+    struct ch_meta *frommeta, struct ch_meta *buddymeta)
+{
+	struct ch_group *g = &from[0];
+	struct ch_group *b = &buddy[0];
+	uint32_t n;
+
+	tometa->cs_local_level = frommeta->cs_local_level - 1;
+
+	for (n = 0; n < CH_H2_SIZE; n++, g++, b++) {
+		if (ch_sub_merge_one(type, to, tometa, g) == -1)
+			return -1;
+		if (ch_sub_merge_one(type, to, tometa, b) == -1)
+			return -1;
+	}
+	return 0;
+}
+
 static int
 ch_sub_alloc(struct ch_group **table, struct ch_meta **meta)
 {
@@ -413,7 +505,7 @@ ch_sub_free(struct ch_group *table, struct ch_meta *meta)
 }
 
 /*
- * Resize extensible hash table by 2. Updating all pointers accordingly.
+ * Resize extendible hash table by 2. Updating all pointers accordingly.
  * Return 0 on success, -1 on failure and set errno.
  */
 static int
@@ -423,7 +515,7 @@ ch_table_resize(struct ch_table *t)
 	struct ch_meta **metas;
 	uint64_t oldsize = 1 << t->ch_level;
 	uint64_t newsize = 1 << (t->ch_level + 1);
-	long idx;
+	int64_t idx;
 
 	if (t->ch_level + 1 >= CH_H1_BITS) {
 		errno = E2BIG;
@@ -479,8 +571,33 @@ ch_table_fill(struct ch_table *t, uint64_t idx, struct ch_group *table,
 }
 
 /*
+ * Return the buddy sub group for the table with idx and local_level.
+ * The buddy page must have the same local level to be a buddy.
+ */
+static struct ch_group *
+ch_table_buddy(struct ch_table *t, uint64_t idx, uint32_t local_level,
+    struct ch_meta **meta)
+{
+	struct ch_meta *m;
+
+	/* the single root table can't be merged */
+	if (local_level == 0)
+		return NULL;
+
+	idx ^= 1ULL << (t->ch_level - local_level);
+
+	m = t->ch_metas[idx];
+	/* can only merge buddies at same level */
+	if (m->cs_local_level == local_level) {
+		*meta = m;
+		return t->ch_tables[idx];
+	}
+	return NULL;
+}
+
+/*
  * Grow the hash table by spliting a sub group and if needed by doubling
- * the extensible hash of the primary table.
+ * the extendible hash of the primary table.
  * Return 0 on success, -1 on failure and set errno.
  */
 static int
@@ -521,6 +638,52 @@ ch_table_grow(const struct ch_type *type, struct ch_table *t, uint64_t h,
 	idx = CH_H1(h, meta->cs_local_level) << 1;
 	ch_table_fill(t, idx, left, leftmeta);
 	ch_table_fill(t, idx | 1, right, rightmeta);
+	ch_sub_free(table, meta);
+
+	return 0;
+}
+
+/*
+ * Try to compact two sub groups back together and adjusting the extendible
+ * hash. Compaction only happens if there is a buddy page (page with same
+ * local level on the alternate slot) and the result of the merge is below
+ * 2 / 3 of the maximum load factor.
+ * Return 0 on success, -1 if no compaction is possible.
+ */
+static int
+ch_table_compact(const struct ch_type *type, struct ch_table *t, uint64_t h,
+    struct ch_group *table, struct ch_meta *meta)
+{
+	struct ch_group *buddy, *to;
+	struct ch_meta *buddymeta, *tometa;
+	uint64_t idx;
+
+	idx = CH_H1(h, t->ch_level);
+	buddy = ch_table_buddy(t, idx, meta->cs_local_level, &buddymeta);
+	if (buddy == NULL ||
+	    ch_sub_fillfactor(meta) +
+	    ch_sub_fillfactor(buddymeta) >
+	    CH_MAX_LOAD * 2 / 3)
+		return -1;
+
+	/* allocate new sub tables */
+	if (ch_sub_alloc(&to, &tometa) == -1)
+		return -1;
+
+	/* merge the table and buddy into to. */
+	if (ch_sub_merge(type, to, table, buddy, tometa, meta, buddymeta) ==
+	    -1) {
+		ch_sub_free(to, tometa);
+		return -1;
+	}
+
+	/*
+	 * Update table in the extendible hash table, which overwrites
+	 * all entries of the buddy.
+	 */
+	idx = CH_H1(h, tometa->cs_local_level);
+	ch_table_fill(t, idx, to, tometa);
+	ch_sub_free(buddy, buddymeta);
 	ch_sub_free(table, meta);
 
 	return 0;
@@ -617,8 +780,18 @@ _ch_remove(const struct ch_type *type, struct ch_table *t, uint64_t h,
 	meta = t->ch_metas[idx];
 
 	v = ch_sub_remove(type, table, meta, h, needle);
-	if (v != NULL)
+	if (v != NULL) {
 		t->ch_num_elm--;
+
+		while (ch_sub_fillfactor(meta) <= CH_MAX_LOAD / 4) {
+			if (ch_table_compact(type, t, h, table, meta) == -1)
+				break;
+
+			/* refetch data after compaction */
+			table = t->ch_tables[idx];
+			meta = t->ch_metas[idx];
+		}
+	}
 	return v;
 }
 
@@ -636,6 +809,22 @@ _ch_find(const struct ch_type *type, struct ch_table *t, uint64_t h,
 	table = t->ch_tables[idx];
 
 	return ch_sub_find(type, table, h, needle);
+}
+
+void *
+_ch_locate(const struct ch_type *type, struct ch_table *t, uint64_t h,
+    int (*cmp)(const void *, void *), void *arg)
+{
+	struct ch_group *table;
+	uint64_t idx;
+
+	if (t->ch_tables == NULL)
+		return NULL;
+
+	idx = CH_H1(h, t->ch_level);
+	table = t->ch_tables[idx];
+
+	return ch_sub_locate(type, table, h, cmp, arg);
 }
 
 void *

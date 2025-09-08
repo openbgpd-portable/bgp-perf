@@ -53,6 +53,8 @@ void *_ch_remove(const struct ch_type *, struct ch_table *, uint64_t,
 	    const void *);
 void *_ch_find(const struct ch_type *, struct ch_table *, uint64_t,
 	    const void *);
+void *_ch_locate(const struct ch_type *, struct ch_table *, uint64_t,
+	    int (*)(const void *, void *), void *);
 void *_ch_first(const struct ch_type *, struct ch_table *, struct ch_iter *);
 void *_ch_next(const struct ch_type *, struct ch_table *, struct ch_iter *);
 
@@ -106,6 +108,14 @@ _name##_CH_FIND(struct _name *head, const struct _type *key)		\
 }									\
 									\
 __unused static inline struct _type *					\
+_name##_CH_LOCATE(struct _name *head, uint64_t hash, 			\
+    int (*cmp)(const void *, void *), void *arg)			\
+{									\
+	return _ch_locate(_name##_CH_TYPE, &head->ch_table, hash,	\
+	    cmp, arg);							\
+}									\
+									\
+__unused static inline struct _type *					\
 _name##_CH_FIRST(struct _name *head, struct ch_iter *iter)		\
 {									\
 	return _ch_first(_name##_CH_TYPE, &head->ch_table, iter);	\
@@ -144,6 +154,8 @@ const struct ch_type *const _name##_CH_TYPE = &_name##_CH_INFO
 					_name##_CH_INSERT(_head, _elm, _prev)
 #define CH_REMOVE(_name, _head, _elm)	_name##_CH_REMOVE(_head, _elm)
 #define CH_FIND(_name, _head, _key)	_name##_CH_FIND(_head, _key)
+#define CH_LOCATE(_name, _head, _h, _cmp, _a)			\
+					_name##_CH_LOCATE(_head, _h, _cmp, _a)
 #define CH_FIRST(_name, _head, _iter)	_name##_CH_FIRST(_head, _iter)
 #define CH_NEXT(_name, _head, _iter)	_name##_CH_NEXT(_head, _iter)
 
