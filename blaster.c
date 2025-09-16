@@ -176,8 +176,6 @@ mrt_dump(struct mrt_rib *mr, struct mrt_peer *mp, void *arg)
 
 		bp = bp_new(&mr->prefix, mr->prefixlen, mre->path_id);
 		TAILQ_INSERT_TAIL(&prev->prefixes, bp, entry);
-//log_peer_warnx(&p->conf, "inserted %s/%d, at %p rib %d", log_addr(&mr->prefix),
-//    mr->prefixlen, prev, p->rib.ch_table.ch_num_elm);
 	}
 }
 
@@ -251,7 +249,6 @@ blast_send(struct peer *p, struct ibuf *attrs, struct ibuf *nlri)
 	if (ibuf_add_ibuf(buf, nlri) == -1)
 		goto fail;
 
-log_peer_warnx(&p->conf, "sending one update, size %zu", ibuf_size(buf));
 	session_update(p, buf);
 	return 0;
  fail:
@@ -305,9 +302,8 @@ blast(struct peer *p)
 	struct bgp_attr *ba;
 	struct ch_iter iter;
 
-	CH_FOREACH(ba, rib, &p->rib, &iter) {
-		log_peer_warnx(&p->conf, "generating one update");
+	log_peer_info(&p->conf, "start blast");
+	CH_FOREACH(ba, rib, &p->rib, &iter)
 		blast_one(p, ba);
-	}
-	log_peer_warnx(&p->conf, "blast done");
+	log_peer_info(&p->conf, "blast done");
 }
