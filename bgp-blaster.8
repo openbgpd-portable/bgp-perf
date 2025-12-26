@@ -1,0 +1,117 @@
+.\" $OpenBSD$
+.\"
+.\" Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
+.\" Copyright (c) 2025 Claudio Jeker <claudio@openbsd.org>
+.\" Copyright (c) 2025 Theo Buehler <tb@openbsd.org>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd $Mdocdate$
+.Dt BGP-BLASTER 8
+.Os
+.Sh NAME
+.Nm bgp-blaster ,
+.Nm bgp-canary
+.Nd BGP performance measurement tools
+.Sh SYNOPSIS
+.Nm bgp-blaster
+.Bk -words
+.Op Fl nvV
+.Op Fl D Ar macro Ns = Ns Ar value
+.Fl f Ar file
+.Ek
+.Nm bgp-canary
+.Bk -words
+.Op Fl nvV
+.Op Fl D Ar macro Ns = Ns Ar value
+.Fl f Ar file
+.Ek
+.Sh DESCRIPTION
+.Nm bgp-blaster
+and
+.Nm bgp-canary
+are programs for Border Gateway Protocol (BGP) performance measurements.
+.Pp
+The
+.Nm bgp-blaster
+tool can load mrtdump files into a table and emulate many peers using
+that table in an efficient way.
+.Pp
+The
+.Nm bgp-canary
+tool sends special UPDATE messages to the system under test and measures
+the latency through the system.
+.Pp
+The statistics for these measurements are available as an openmetric file.
+.Bl -tag -width "-f fileXXX"
+.It Fl D Ar macro Ns = Ns Ar value
+Define
+.Ar macro
+to be set to
+.Ar value
+on the command line.
+Overrides the definition of
+.Ar macro
+in the configuration file.
+.It Fl f Ar file
+Use
+.Ar file
+as the configuration file.
+.It Fl n
+Configtest mode.
+Only check the configuration file for validity.
+.It Fl v
+Produce more verbose output.
+.It Fl V
+Show the version and exit.
+.El
+.Sh EXAMPLES
+The configuration file for both tools supports a subset of the
+.Xr bgpd.conf 5
+configuration syntax.
+A minimal
+.Pa bgp-blaster.conf
+contains
+.Bd -literal -offset indent
+# testdump is an mrtdump file
+mrt dump "/path/to/testdump"
+.Ed
+.Pp
+A minimal
+.Pa bgp-canary.conf
+contains
+.Bd -literal -offset indent
+# configure where to write the ometric output
+dump metric "/path/to/metric"
+.Ed
+.Pp
+and it also requires the configuration of peers via the
+.Ic neighbor
+directive as in
+.Xr bgpd.conf 5 .
+.Sh SEE ALSO
+.Xr bgpd.conf 5 ,
+.Xr bgpctl 8 ,
+.Xr bgpd 8
+.Sh STANDARDS
+.Rs
+.%D January 2006
+.%R RFC 4271
+.%T A Border Gateway Protocol 4 (BGP-4)
+.Re
+.Pp
+.Rs
+.%D October 2011
+.%R RFC 6396
+.%T Multi-Threaded Routing Toolkit (MRT) Routing Information Export Format
+.Re

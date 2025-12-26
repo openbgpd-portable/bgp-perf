@@ -18,6 +18,6 @@ CFLAGS+= -Wsign-compare
 YFLAGS=
 LDADD+=	-lutil
 DPADD+= ${LIBUTIL}
-NOMAN= 
+MAN=	bgp-blaster.8
 
 .include <bsd.prog.mk>
